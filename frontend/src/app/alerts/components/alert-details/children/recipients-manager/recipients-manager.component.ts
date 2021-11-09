@@ -14,36 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import {
-    Component,
-    ElementRef,
-    EventEmitter,
-    HostBinding,
-    HostListener,
-    Input,
-    OnChanges,
-    OnDestroy,
-    OnInit,
-    Output,
-    SimpleChanges,
-    ViewChild
-} from '@angular/core';
-import {MatChipInputEvent, MatInput, MatMenuTrigger} from '@angular/material';
-import {COMMA, ENTER} from '@angular/cdk/keycodes';
-import {Mode, Recipient, RecipientType} from './models';
-import {AbstractControl, FormControl, ValidatorFn} from '@angular/forms';
-import {Select, Store} from '@ngxs/store';
+import { Component, OnInit, HostBinding, ElementRef, HostListener,
+    Input, Output, EventEmitter, ViewChild, OnDestroy, OnChanges, SimpleChanges } from '@angular/core';
+import { MatChipInputEvent, MatMenuTrigger, MatInput } from '@angular/material';
+import { COMMA, ENTER } from '@angular/cdk/keycodes';
+import { Mode, RecipientType, Recipient } from './models';
+import { FormControl, ValidatorFn, AbstractControl } from '@angular/forms';
+import { Store, Select } from '@ngxs/store';
 // tslint:disable-next-line:max-line-length
-import {
-    DeleteRecipient,
-    GetRecipients,
-    PostRecipient,
-    RecipientsState,
-    UpdateRecipient
-} from '../../../../state/recipients-management.state';
-import {Observable, Subscription} from 'rxjs';
-import {UtilsService} from '../../../../../core/services/utils.service';
-import {AppConfigService} from '../../../../../core/services/config.service';
+import { RecipientsState, GetRecipients, PostRecipient, DeleteRecipient, UpdateRecipient } from '../../../../state/recipients-management.state';
+import { Observable, Subscription } from 'rxjs';
+import { UtilsService } from '../../../../../core/services/utils.service';
+import { AppConfigService } from '../../../../../core/services/config.service';
 
 @Component({
     // tslint:disable:no-inferrable-types
@@ -513,6 +495,7 @@ export class AlertConfigurationContactsComponent implements OnInit, OnChanges, O
         let emptyOCRecipient = this.createDefaultRecipient(RecipientType.oc);
         let emptyEmailRecipient = this.createDefaultRecipient(RecipientType.email);
         let emptyPagerDutyRecipient = this.createDefaultRecipient(RecipientType.pagerduty);
+
         // Set Defaults
         emptyOpsGenieRecipient.apikey = '';
         emptySlackRecipient.webhook = '';
