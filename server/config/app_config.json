@@ -41,7 +41,11 @@
         },
         "email": {
             "enable": true
-        }
+        },
+        "pagerduty": {
+            "enable": false,
+            "guideUrl": "<% pagerduty guide url %>"
+        }    
       }
     },
     "alert_history_url": "<% alert log history url %>",

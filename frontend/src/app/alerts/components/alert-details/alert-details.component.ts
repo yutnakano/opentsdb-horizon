@@ -2091,7 +2091,8 @@ export class AlertDetailsComponent implements OnInit, OnDestroy, AfterContentIni
             slack: 'Slack',
             http: 'Webhook',
             oc: 'OC',
-            email: 'Email'
+            email: 'Email',
+            pagerduty: 'PagerDuty'
         }
         return types[type];
     }

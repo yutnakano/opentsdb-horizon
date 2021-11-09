@@ -14,18 +14,36 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Component, OnInit, HostBinding, ElementRef, HostListener,
-    Input, Output, EventEmitter, ViewChild, OnDestroy, OnChanges, SimpleChanges } from '@angular/core';
-import { MatChipInputEvent, MatMenuTrigger, MatInput } from '@angular/material';
-import { COMMA, ENTER } from '@angular/cdk/keycodes';
-import { Mode, RecipientType, Recipient } from './models';
-import { FormControl, ValidatorFn, AbstractControl } from '@angular/forms';
-import { Store, Select } from '@ngxs/store';
+import {
+    Component,
+    ElementRef,
+    EventEmitter,
+    HostBinding,
+    HostListener,
+    Input,
+    OnChanges,
+    OnDestroy,
+    OnInit,
+    Output,
+    SimpleChanges,
+    ViewChild
+} from '@angular/core';
+import {MatChipInputEvent, MatInput, MatMenuTrigger} from '@angular/material';
+import {COMMA, ENTER} from '@angular/cdk/keycodes';
+import {Mode, Recipient, RecipientType} from './models';
+import {AbstractControl, FormControl, ValidatorFn} from '@angular/forms';
+import {Select, Store} from '@ngxs/store';
 // tslint:disable-next-line:max-line-length
-import { RecipientsState, GetRecipients, PostRecipient, DeleteRecipient, UpdateRecipient } from '../../../../state/recipients-management.state';
-import { Observable, Subscription } from 'rxjs';
-import { UtilsService } from '../../../../../core/services/utils.service';
-import { AppConfigService } from '../../../../../core/services/config.service';
+import {
+    DeleteRecipient,
+    GetRecipients,
+    PostRecipient,
+    RecipientsState,
+    UpdateRecipient
+} from '../../../../state/recipients-management.state';
+import {Observable, Subscription} from 'rxjs';
+import {UtilsService} from '../../../../../core/services/utils.service';
+import {AppConfigService} from '../../../../../core/services/config.service';
 
 @Component({
     // tslint:disable:no-inferrable-types
@@ -44,7 +62,7 @@ export class AlertConfigurationContactsComponent implements OnInit, OnChanges, O
     @ViewChild('recipientInput', { read: MatInput }) private recipientInput: MatInput;
 
     @Input() namespace: string;
-    @Input() selectedAlertRecipients: any; 
+    @Input() selectedAlertRecipients: any;
     @Input() formHasError: true;
     @Output() updatedAlertRecipients = new EventEmitter<any>();
 
@@ -64,6 +82,7 @@ export class AlertConfigurationContactsComponent implements OnInit, OnChanges, O
     ];
     slackWebhookMaxLength = 200;
     opsGenieApiKeyMaxLength = 200;
+    pagerDutyRoutingKeyMaxLength = 32;
 
     _mode = Mode; // for template
     _recipientType = RecipientType; // for template
@@ -82,6 +101,8 @@ export class AlertConfigurationContactsComponent implements OnInit, OnChanges, O
     httpName = new FormControl('');
     httpEndpoint = new FormControl('');
     emailAddress = new FormControl('');
+    pagerDutyName = new FormControl('');
+    pagerDutyRoutingKey = new FormControl('');
 
     // state control
     private nsRecipientSub: Subscription;
@@ -112,6 +133,10 @@ export class AlertConfigurationContactsComponent implements OnInit, OnChanges, O
             if (this.emailAddress.errors) {
                 return true;
             }
+        } else if (this.recipientType === RecipientType.pagerduty) {
+            if (this.pagerDutyName.errors || this.pagerDutyRoutingKey.errors) {
+                return true;
+            }
         }
         return false;
     }
@@ -139,7 +164,7 @@ export class AlertConfigurationContactsComponent implements OnInit, OnChanges, O
         this.types = Object.keys(RecipientType)
             .filter(t => this.config.alert.recipient[t])
             .filter(t => this.config.alert.recipient[t].enable);
-        
+
         this.populateEmptyRecipients();
         if (!this.alertRecipients) {
             this.alertRecipients = [];
@@ -291,6 +316,8 @@ export class AlertConfigurationContactsComponent implements OnInit, OnChanges, O
         this.httpName.setValue(this.recipientsFormData[RecipientType.http].name);
         this.httpEndpoint.setValue(this.recipientsFormData[RecipientType.http].endpoint);
         this.emailAddress.setValue(this.recipientsFormData[RecipientType.email].name);
+        this.pagerDutyName.setValue(this.recipientsFormData[RecipientType.pagerduty].name);
+        this.pagerDutyRoutingKey.setValue(this.recipientsFormData[RecipientType.pagerduty].routingkey);
     }
 
     addUserInputToAlertRecipients($event: MatChipInputEvent) {
@@ -472,6 +499,8 @@ export class AlertConfigurationContactsComponent implements OnInit, OnChanges, O
             return 'OC';
         } else if (type === RecipientType.email) {
             return 'Email';
+        } else if (type === RecipientType.pagerduty) {
+            return 'PagerDuty';
         }
         return '';
     }
@@ -483,7 +512,7 @@ export class AlertConfigurationContactsComponent implements OnInit, OnChanges, O
         let emptyHTTPRecipient = this.createDefaultRecipient(RecipientType.http);
         let emptyOCRecipient = this.createDefaultRecipient(RecipientType.oc);
         let emptyEmailRecipient = this.createDefaultRecipient(RecipientType.email);
-
+        let emptyPagerDutyRecipient = this.createDefaultRecipient(RecipientType.pagerduty);
         // Set Defaults
         emptyOpsGenieRecipient.apikey = '';
         emptySlackRecipient.webhook = '';
@@ -492,12 +521,14 @@ export class AlertConfigurationContactsComponent implements OnInit, OnChanges, O
         emptyOCRecipient.context = 'analysis';
         emptyOCRecipient.opsdbproperty = '';
         emptyEmailRecipient.name = '';
+        emptyPagerDutyRecipient.routingkey = '';
 
         emptyRecipients[RecipientType.opsgenie] = emptyOpsGenieRecipient;
         emptyRecipients[RecipientType.slack] = emptySlackRecipient;
         emptyRecipients[RecipientType.http] = emptyHTTPRecipient;
         emptyRecipients[RecipientType.oc] = emptyOCRecipient;
         emptyRecipients[RecipientType.email] = emptyEmailRecipient;
+        emptyRecipients[RecipientType.pagerduty] = emptyPagerDutyRecipient;
         this.recipientsFormData = emptyRecipients;
     }
 
@@ -531,6 +562,10 @@ export class AlertConfigurationContactsComponent implements OnInit, OnChanges, O
 
     isOpsGenieApiKeyCorrectLength(apiKey: string): boolean {
         return apiKey && apiKey.length > 0 && apiKey.length <= this.opsGenieApiKeyMaxLength;
+    }
+
+    isPagerDutyRoutingKeyCorrectLength(routingkey: string): boolean {
+        return routingkey && routingkey.length > 0 && routingkey.length <= this.pagerDutyRoutingKeyMaxLength;
     }
 
     getRecipientItemsByType(type) {
@@ -618,6 +653,13 @@ export class AlertConfigurationContactsComponent implements OnInit, OnChanges, O
         };
     }
 
+    pagerDutyRoutingKeyValidator(): ValidatorFn {
+        return (control: AbstractControl): { [key: string]: any } | null => {
+            let forbidden = !this.isPagerDutyRoutingKeyCorrectLength(control.value);
+            return forbidden ? {'forbiddenName': {value: control.value}} : null;
+        };
+    }
+
     urlValidator() : ValidatorFn {
         return (control: AbstractControl): { [key: string]: any } | null => {
             let forbidden = !/^https:\/\/(www\.)?(([-a-zA-Z0-9@:%._[\]]{1,256}\.[a-zA-Z0-9()]{0,6}\b)|(\[?[a-fA-F0-9]*:[a-fA-F0-9:]+\]))([-a-zA-Z0-9()@:%_\+.~#?&//=]*)$/.test(control.value);
@@ -635,6 +677,8 @@ export class AlertConfigurationContactsComponent implements OnInit, OnChanges, O
         this.ocName = new FormControl('', [this.forbiddenNameValidator(this.getAllRecipientsForType(RecipientType.oc), this.recipientsFormData[this.recipientType])]);
         this.httpName = new FormControl('', [this.forbiddenNameValidator(this.getAllRecipientsForType(RecipientType.http), this.recipientsFormData[this.recipientType])]);
         this.emailAddress = new FormControl('', [this.forbiddenNameValidator(this.getAllRecipientsForType(RecipientType.email), this.recipientsFormData[this.recipientType]), this.emailValidator()]);
+        this.pagerDutyName = new FormControl('', [this.forbiddenNameValidator(this.getAllRecipientsForType(RecipientType.pagerduty), this.recipientsFormData[this.recipientType])]);
+        this.pagerDutyRoutingKey = new FormControl('', [this.pagerDutyRoutingKeyValidator()]);
     }
 
     trimRecipientName(name) {
